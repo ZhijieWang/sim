@@ -2,23 +2,29 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
 
-type ExchangeImpl struct {
+// exchangeImpl implements the interface of Exchange
+type exchangeImpl struct {
 	Markets      map[string]Market
 	Participants []Trader
 }
+
+// Exchange interface documents basic behavior of an exchange and protocol.
+// Multiple echange intstances can be syndicated
 type Exchange interface {
-	SubmitOrder(string, string, Order) bool
+	SubmitOrder(string, Order) bool
 	Receive(actor.Context)
 	GetQuote(string) Quote
 	GetAllQuotes() map[string]Quote
 }
 
+// InitExchange is the constructor for default exchange creation
 func InitExchange() Exchange {
-	e := &ExchangeImpl{
+	e := &exchangeImpl{
 		make(map[string]Market),
 		[]Trader{},
 	}
@@ -31,16 +37,24 @@ func InitExchange() Exchange {
 	// }
 	return e
 }
-
-func (e *ExchangeImpl) SubmitOrder(T string, Stock string, o Order) bool {
+func (e *exchangeImpl) executeOrder(stock string, o Order) {
+	trades := e.Markets[stock].MatchOrder(o)
+	actor.EmptyRootContext.Send(actor.NewLocalPID("$2"), OrderFulfillment{
+		Timestamp: time.Now(),
+		Trades:    trades,
+		OrderID:   o.OrderID,
+	})
+}
+func (e *exchangeImpl) SubmitOrder(Stock string, o Order) bool {
 	e.Markets[Stock].PlaceOrder(o)
+	go e.executeOrder(Stock, o)
 	return true
 }
-func (e *ExchangeImpl) GetQuote(stock string) Quote {
+func (e *exchangeImpl) GetQuote(stock string) Quote {
 	return e.Markets[stock].GetQuote()
 }
 
-func (e *ExchangeImpl) GetAllQuotes() map[string]Quote {
+func (e *exchangeImpl) GetAllQuotes() map[string]Quote {
 	retVal := map[string]Quote{}
 	for k, v := range e.Markets {
 		retVal[k] = v.GetQuote()
@@ -49,23 +63,17 @@ func (e *ExchangeImpl) GetAllQuotes() map[string]Quote {
 
 }
 
-func (e *ExchangeImpl) NotifyExecution(T Trade) {
+func (e *exchangeImpl) NotifyExecution(T Trade) {
 	context := actor.EmptyRootContext
 	trader := actor.NewLocalPID(T.Origin)
 	context.Request(trader, T)
 }
 
-type SubmitOrderRequest struct {
-	Stock       string
-	OrderDetail Order
-}
-type OrderConfirmation struct {
-}
-
-func (e *ExchangeImpl) Receive(context actor.Context) {
+func (e *exchangeImpl) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case SubmitOrderRequest:
-		success := e.SubmitOrder(context.Sender().GetAddress(), msg.Stock, msg.OrderDetail)
+		fmt.Println(context.Sender())
+		success := e.SubmitOrder(msg.Stock, msg.OrderDetail)
 		if success {
 			fmt.Println("Order Received")
 		}

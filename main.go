@@ -16,9 +16,9 @@ import (
 )
 
 func main() {
-	RunIterations()
+	runIterations()
 }
-func RunIterations() {
+func runIterations() {
 	// InitExchange()
 	jaegerCloser := initJaeger()
 	defer jaegerCloser.Close()
@@ -29,7 +29,7 @@ func RunIterations() {
 	grp := rootContext.Spawn(router.NewBroadcastGroup())
 
 	pid, err := rootContext.SpawnNamed(ExchangeProps, "Exchange")
-	rootContext.Send(grp, &router.AddRoutee{pid})
+	rootContext.Send(grp, &router.AddRoutee{PID: pid})
 	if err != nil {
 		panic(err)
 	}
@@ -37,23 +37,27 @@ func RunIterations() {
 	TraderProps := actor.PropsFromProducer(func() actor.Actor {
 		return NewPariticpant()
 	})
-	pid = rootContext.Spawn(TraderProps)
-	rootContext.Send(grp, &router.AddRoutee{pid})
-	count := sync.WaitGroup{}
-	count.Add(1)
 
+	pid = rootContext.Spawn(TraderProps)
+
+	rootContext.Send(grp, &router.AddRoutee{PID: pid})
+	count := sync.WaitGroup{}
 	ticker := actor.PropsFromFunc(func(context actor.Context) {
 		switch context.Message().(type) {
+		case TICK:
+			context.Request(grp, &router.BroadcastMessage{Message: TICK{}})
 		case DONE:
 			count.Done()
 		}
 	})
-	rootContext.Spawn(ticker)
+	t := rootContext.Spawn(ticker)
+	for rounds := 0; rounds < 1; rounds++ {
+		count.Add(1)
+		rootContext.Send(t, TICK{})
+		count.Wait()
+		fmt.Printf("Round %d done", rounds)
 
-	count.Wait()
-	// for i := 0; i < 3; i++ {
-	// 	rootContext.RequestFuture(pid, SubmitOrderRequest{}, 1*time.Second).Wait()
-	// }
+	}
 
 	console.ReadLine()
 	// t.Observe()
@@ -92,39 +96,3 @@ func initJaeger() io.Closer {
 	}
 	return closer
 }
-
-// func createProps(levels int) *actor.Props {
-// 	if levels <= 1 {
-// 		sleep := time.Duration(rand.Intn(5000))
-
-// 		return actor.PropsFromFunc(func(c actor.Context) {
-// 			switch msg := c.Message().(type) {
-// 			case *request:
-// 				time.Sleep(sleep * time.Millisecond)
-// 				if c.Sender() != nil {
-// 					c.Respond(&response{i: msg.i})
-// 				}
-// 			}
-// 		})
-// 	}
-
-// 	var childs []*actor.PID
-// 	return actor.PropsFromFunc(func(c actor.Context) {
-// 		switch c.Message().(type) {
-// 		case *actor.Started:
-// 			for i := 0; i < 3; i++ {
-// 				childs = append(childs, c.Spawn(createProps(levels-1)))
-// 			}
-// 		case *request:
-// 			c.Forward(childs[rand.Intn(len(childs))])
-// 		}
-// 	})
-// }
-
-// type request struct {
-// 	i int
-// }
-
-// type response struct {
-// 	i int
-// }

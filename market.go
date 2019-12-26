@@ -10,29 +10,6 @@ var seededRand *rand.Rand = rand.New(
 
 const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
-type OrderStatus int
-
-const (
-	Created OrderStatus = iota
-	Placed
-	PartiallyFilled
-	Filled
-	Canceled
-)
-
-type OrderType int
-
-const (
-	Bid OrderType = iota
-	Ask
-)
-
-type Quote struct {
-	LastPrice  float32
-	CurrentBid float32
-	CurrentAsk float32
-}
-
 func StringWithCharset(length int, charset string) string {
 	b := make([]byte, length)
 	for i := range b {
@@ -45,50 +22,71 @@ func String(length int) string {
 	return StringWithCharset(length, charset)
 }
 
-type Order struct {
-	Timestamp time.Time
-	Quantity  int
-	Price     float32
-	Filled    int
-	Status    OrderStatus
-	Origin    string
-	OrderType
+const (
+	// MaxPriceRange bounds the order book price point size.
+	// If an order's price is within the current price +/- max price range,
+	// the order will be condiser as a valid one. Or it will be rejected.
+	MaxPriceRange = 10
+)
+
+type Entry struct {
+	Price    float32
+	Quantity int
 }
 
-type OrderBook struct {
-	Bid []Order
-	Ask []Order
+type orderBook struct {
+	Bids   []Entry
+	Asks   []Entry
+	askMin int
+	bidMax int
 }
+
+// Market interface declares interface for the market implementation
 type Market interface {
 	PlaceOrder(Order) bool
 	GetSymbol() string
-	MatchOrder() []Trade
+	MatchOrder(Order) []Trade
 	GetQuote() Quote
 }
-type MarketImpl struct {
+
+//marketImpl implements the basic market behavior with FIFO order execution
+type marketImpl struct {
 	Stock  string
 	Price  float32
 	Shares int32
-	Orders OrderBook
+	Orders orderBook
 }
 
+// NewMarket constructor
 func NewMarket() Market {
-	return &MarketImpl{
+	return &marketImpl{
 		Stock:  String(10),
 		Price:  1.0,
 		Shares: 1000000,
+		Orders: orderBook{
+			make([]Entry, MaxPriceRange*100),
+			make([]Entry, MaxPriceRange*100),
+			0,
+			0,
+		},
 	}
 }
-func (m *MarketImpl) PlaceOrder(order Order) bool {
-	switch order.OrderType {
-	case Bid:
-		m.Orders.Bid = append(m.Orders.Bid, order)
-	case Ask:
-		m.Orders.Ask = append(m.Orders.Ask, order)
-	}
+func (m *marketImpl) fillAtPrice(PP int, bora OrderType) []Trade {
+	panic("Not Yet Implemented")
+}
+func (m *marketImpl) fillPartialAtPrice(PP int, Q int, bora OrderType) []Trade {
+	panic("Not Yet Implemented")
+}
+func (m *marketImpl) PlaceOrder(order Order) bool {
+	// switch order.OrderType {
+	// case Bid:
+	// 	m.Orders.Bids <- order
+	// case Ask:
+	// 	m.Orders.Asks <- order
+	// }
 	return true
 }
-func (m *MarketImpl) GetQuote() Quote {
+func (m *marketImpl) GetQuote() Quote {
 	return Quote{
 		m.Price,
 		0,
@@ -96,6 +94,7 @@ func (m *MarketImpl) GetQuote() Quote {
 	}
 }
 
+// Trade defines the message of a trade to be placed
 type Trade struct {
 	Stock        string
 	Position     int // + for long, - for short
@@ -103,10 +102,57 @@ type Trade struct {
 	Origin       string
 }
 
-func (m *MarketImpl) MatchOrder() []Trade {
-	panic("Not Yet Implemented")
+func (m *marketImpl) MatchBidOrder(o Order) []Trade {
+
+	totalQuant := 0
+	trades := []Trade{}
+	for amin := m.Orders.askMin; m.Orders.Asks[amin].Price < o.Price; amin++ {
+		q := totalQuant + m.Orders.Asks[amin].Quantity
+		switch {
+
+		case q == o.Quantity:
+			trades = append(trades, m.fillAtPrice(amin, Bid)...)
+			break
+		case q < o.Quantity:
+			trades = append(trades, m.fillAtPrice(amin, Bid)...)
+		case q > o.Quantity:
+			trades = append(trades, m.fillPartialAtPrice(amin, o.Quantity-totalQuant, Bid)...)
+		}
+
+	}
+	return trades
+}
+
+func (m *marketImpl) MatchAskOrder(o Order) []Trade {
+	totalQuant := 0
+	trades := []Trade{}
+	for bmax := m.Orders.bidMax; m.Orders.Bids[bmax].Price > o.Price; bmax-- {
+		q := totalQuant + m.Orders.Bids[bmax].Quantity
+		switch {
+
+		case q == o.Quantity:
+			trades = append(trades, m.fillAtPrice(bmax, Ask)...)
+			break
+		case q < o.Quantity:
+			trades = append(trades, m.fillAtPrice(bmax, Ask)...)
+		case q > o.Quantity:
+			trades = append(trades, m.fillPartialAtPrice(bmax, o.Quantity-totalQuant, Ask)...)
+		}
+
+	}
+	return trades
+}
+
+func (m *marketImpl) MatchOrder(o Order) []Trade {
+
+	switch o.OrderType {
+	case Bid:
+		return m.MatchBidOrder(o)
+	case Ask:
+		return m.MatchAskOrder(o)
+	}
 	return []Trade{}
 }
-func (m *MarketImpl) GetSymbol() string {
+func (m *marketImpl) GetSymbol() string {
 	return ""
 }

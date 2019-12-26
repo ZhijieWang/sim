@@ -9,39 +9,47 @@ import (
 	"github.com/AsynkronIT/protoactor-go/actor/middleware/opentracing"
 )
 
+// Trader type defines the interface of a basic trader.
+// Actual behavior is defined in traderImpl struct
 type Trader interface {
 	Trade()
 	Observe()
 	Receive(actor.Context)
 	Run()
 }
-type TraderImpl struct {
-	ID          string
+type traderImpl struct {
+	Self        *actor.PID
 	Balance     float32
 	OpenOrders  []Order
 	OrderHistor []Order
 	latestQuote map[string]Quote
-	context     *actor.RootContext
 }
 
-func (t *TraderImpl) Run() {
+func getRootContext() *actor.RootContext {
+	return actor.NewRootContext(nil).WithSpawnMiddleware(opentracing.TracingMiddleware())
+}
+func (t *traderImpl) Run() {
 	t.Observe()
 	t.Trade()
 }
-func get_exchange() *actor.PID {
+func getExchange() *actor.PID {
+
 	return actor.NewLocalPID("Exchange")
 
 }
-func (t *TraderImpl) Observe() {
-	exchange := get_exchange()
+func (t *traderImpl) Observe() {
+	exchange := getExchange()
 
-	resp, err := t.context.RequestFuture(exchange, GetQuoteMessage{}, time.Second).Result()
+	resp, err := getRootContext().RequestFuture(exchange, GetQuoteMessage{}, time.Second).Result()
 	if err != nil {
 		panic(err)
 	}
 	t.latestQuote = resp.(StockQuoteMessage).Value
 }
-func CreateMarketOrder(traderId string, stock string, quantity int, price float32, bidorask OrderType) Order {
+
+//CreateMarketOrder should take in a Trader's ID/address in string form,
+//stock symbol, quantity as int and price and order type
+func (t *traderImpl) CreateMarketOrder(stock string, quantity int, price float32, bidorask OrderType) Order {
 	return Order{
 		Timestamp: time.Now(),
 		Quantity:  quantity,
@@ -49,10 +57,11 @@ func CreateMarketOrder(traderId string, stock string, quantity int, price float3
 		Filled:    0,
 		Status:    Created,
 		OrderType: bidorask,
-		Origin:    traderId,
+		Origin:    *t.Self,
+		OrderID:   String(10),
 	}
 }
-func (t *TraderImpl) Trade() {
+func (t *traderImpl) Trade() {
 	if t.latestQuote == nil {
 		panic("NO OBSERVATION")
 	}
@@ -63,9 +72,9 @@ func (t *TraderImpl) Trade() {
 		// return "", Order{}
 		//do nothing
 	case 1:
-		k := get_some_key(t.latestQuote)
-		order := CreateMarketOrder(t.ID, k, 1, t.latestQuote[k].CurrentAsk, Bid)
-		result, _ := t.context.RequestFuture(get_exchange(), SubmitOrderRequest{k, order}, time.Second).Result()
+		k := getSomeKey(t.latestQuote)
+		order := t.CreateMarketOrder(k, 1, t.latestQuote[k].CurrentAsk, Bid)
+		result, _ := getRootContext().RequestFuture(getExchange(), SubmitOrderRequest{k, order}, time.Second).Result()
 		if _, ok := result.(OrderConfirmation); !ok {
 			panic("Order Submission Failed")
 		} else {
@@ -78,46 +87,37 @@ func (t *TraderImpl) Trade() {
 	}
 
 }
-func get_some_key(m map[string]Quote) string {
+func getSomeKey(m map[string]Quote) string {
 	for k := range m {
 		return k
 	}
 	return ""
 }
 
-type GetQuoteMessage struct {
-	Stock string
-}
-type StockQuoteMessage struct {
-	Value map[string]Quote
-}
-type TICK struct{}
-type DONE struct {
-	WHO string
-}
-
-func (t *TraderImpl) Receive(context actor.Context) {
+func (t *traderImpl) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
-
-		t.Run()
+		t.Self = context.Self()
 
 	case OrderConfirmation:
 		fmt.Println(msg)
+	case OrderFulfillment:
+		fmt.Printf("Order Fulfillment %+v\n", msg)
 	case TICK:
 		t.Run()
 		context.Respond(DONE{context.Self().GetAddress()})
 	}
 }
 
+// NewParticipant instantiate a new trader
+// TODO: instantiate NewParticipant as a SPawnFunc with autonatically keyed names
 func NewPariticpant() Trader {
-	t := &TraderImpl{
-		String(5),
+	t := &traderImpl{
+		nil,
 		10000.00,
 		[]Order{},
 		[]Order{},
 		nil,
-		actor.NewRootContext(nil).WithSpawnMiddleware(opentracing.TracingMiddleware()),
 	}
 	return t
 }
