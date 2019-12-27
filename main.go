@@ -35,7 +35,7 @@ func runIterations() {
 	}
 
 	TraderProps := actor.PropsFromProducer(func() actor.Actor {
-		return NewPariticpant()
+		return NewPariticipant()
 	})
 
 	pid = rootContext.Spawn(TraderProps)

@@ -111,7 +111,7 @@ func (t *traderImpl) Receive(context actor.Context) {
 
 // NewParticipant instantiate a new trader
 // TODO: instantiate NewParticipant as a SPawnFunc with autonatically keyed names
-func NewPariticpant() Trader {
+func NewPariticipant() Trader {
 	t := &traderImpl{
 		nil,
 		10000.00,
