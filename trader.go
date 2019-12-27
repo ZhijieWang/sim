@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/actor/middleware/opentracing"
 )
 
 // Trader type defines the interface of a basic trader.
@@ -25,21 +24,16 @@ type traderImpl struct {
 	latestQuote map[string]Quote
 }
 
-func getRootContext() *actor.RootContext {
-	return actor.NewRootContext(nil).WithSpawnMiddleware(opentracing.TracingMiddleware())
-}
 func (t *traderImpl) Run() {
 	t.Observe()
 	t.Trade()
 }
 func getExchange() *actor.PID {
-
 	return actor.NewLocalPID("Exchange")
 
 }
 func (t *traderImpl) Observe() {
 	exchange := getExchange()
-
 	resp, err := getRootContext().RequestFuture(exchange, GetQuoteMessage{}, time.Second).Result()
 	if err != nil {
 		panic(err)
@@ -49,7 +43,7 @@ func (t *traderImpl) Observe() {
 
 //CreateMarketOrder should take in a Trader's ID/address in string form,
 //stock symbol, quantity as int and price and order type
-func (t *traderImpl) CreateMarketOrder(stock string, quantity int, price float32, bidorask OrderType) Order {
+func CreateMarketOrder(self actor.PID, stock string, quantity int, price float32, bidorask OrderType) Order {
 	return Order{
 		Timestamp: time.Now(),
 		Quantity:  quantity,
@@ -57,7 +51,7 @@ func (t *traderImpl) CreateMarketOrder(stock string, quantity int, price float32
 		Filled:    0,
 		Status:    Created,
 		OrderType: bidorask,
-		Origin:    *t.Self,
+		Origin:    self,
 		OrderID:   String(10),
 	}
 }
@@ -65,7 +59,7 @@ func (t *traderImpl) Trade() {
 	if t.latestQuote == nil {
 		panic("NO OBSERVATION")
 	}
-	r := rand.Intn(2)
+	r := rand.Intn(3)
 
 	switch r {
 	case 0:
@@ -73,7 +67,7 @@ func (t *traderImpl) Trade() {
 		//do nothing
 	case 1:
 		k := getSomeKey(t.latestQuote)
-		order := t.CreateMarketOrder(k, 1, t.latestQuote[k].CurrentAsk, Bid)
+		order := CreateMarketOrder(*t.Self, k, int(t.Balance/t.latestQuote[k].CurrentAsk), t.latestQuote[k].CurrentAsk, Bid)
 		result, _ := getRootContext().RequestFuture(getExchange(), SubmitOrderRequest{k, order}, time.Second).Result()
 		if _, ok := result.(OrderConfirmation); !ok {
 			panic("Order Submission Failed")
@@ -98,7 +92,6 @@ func (t *traderImpl) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
 		t.Self = context.Self()
-
 	case OrderConfirmation:
 		fmt.Println(msg)
 	case OrderFulfillment:

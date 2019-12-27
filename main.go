@@ -7,7 +7,6 @@ import (
 
 	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/actor/middleware/opentracing"
 	"github.com/AsynkronIT/protoactor-go/router"
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
@@ -18,29 +17,46 @@ import (
 func main() {
 	runIterations()
 }
+func getRootContext() *actor.RootContext {
+	return actor.NewRootContext(nil)
+	// return actor.NewRootContext(nil).WithSpawnMiddleware(opentracing.TracingMiddleware())
+}
 func runIterations() {
-	// InitExchange()
+	//Setting up context with middleware support
 	jaegerCloser := initJaeger()
 	defer jaegerCloser.Close()
-	rootContext := actor.NewRootContext(nil).WithSpawnMiddleware(opentracing.TracingMiddleware())
+	rootContext := getRootContext()
+	// Setting up Exchange
 	ExchangeProps := actor.PropsFromProducer(func() actor.Actor {
 		return InitExchange()
 	})
-	grp := rootContext.Spawn(router.NewBroadcastGroup())
+	_, err := rootContext.SpawnNamed(ExchangeProps, "Exchange")
+	if err != nil {
+		panic("Process Exchange already initialized")
+	}
+	// Initialize MatketMaker and beging IPO
+	MMProps := actor.PropsFromProducer(func() actor.Actor {
+		return &MarketMakerTrader{}
+	})
+	_, err = rootContext.SpawnNamed(MMProps, "MarketMaker")
+	if err != nil {
+		panic("Process MarketMaker already initialized")
+	}
 
-	pid, err := rootContext.SpawnNamed(ExchangeProps, "Exchange")
-	rootContext.Send(grp, &router.AddRoutee{PID: pid})
+	//Setting broadcast group
+	grp := rootContext.Spawn(router.NewBroadcastGroup())
 	if err != nil {
 		panic(err)
 	}
-
+	// Spawn Traders and add them one by one to broadcast group
 	TraderProps := actor.PropsFromProducer(func() actor.Actor {
 		return NewPariticipant()
 	})
-
-	pid = rootContext.Spawn(TraderProps)
+	pid := rootContext.Spawn(TraderProps)
 
 	rootContext.Send(grp, &router.AddRoutee{PID: pid})
+	// Setting up WaitGroup for syncrhonization.
+	// Initalize ticker for clock
 	count := sync.WaitGroup{}
 	ticker := actor.PropsFromFunc(func(context actor.Context) {
 		switch context.Message().(type) {
@@ -51,11 +67,12 @@ func runIterations() {
 		}
 	})
 	t := rootContext.Spawn(ticker)
-	for rounds := 0; rounds < 1; rounds++ {
+	// Begin Rounds. Wait for sync -- all traders repond, before begin next round
+	for rounds := 0; rounds < 5; rounds++ {
 		count.Add(1)
 		rootContext.Send(t, TICK{})
 		count.Wait()
-		fmt.Printf("Round %d done", rounds)
+		fmt.Printf("Round %d done\n", rounds)
 
 	}
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/AsynkronIT/protoactor-go/actor"
 	"math/rand"
 	"time"
 )
@@ -47,6 +48,7 @@ type Market interface {
 	GetSymbol() string
 	MatchOrder(Order) []Trade
 	GetQuote() Quote
+	init(float32, int)
 }
 
 //marketImpl implements the basic market behavior with FIFO order execution
@@ -143,6 +145,19 @@ func (m *marketImpl) MatchAskOrder(o Order) []Trade {
 	return trades
 }
 
+// init function implements the IPO process of a stock.
+func (m *marketImpl) init(price float32, quantity int) {
+	m.PlaceOrder(Order{
+		Timestamp: time.Now(),
+		Quantity:  quantity,
+		Price:     price,
+		Filled:    0,
+		Status:    Placed,
+		Origin:    *actor.NewLocalPID("MarketMaker"),
+		OrderType: Ask,
+		OrderID:   String(10),
+	})
+}
 func (m *marketImpl) MatchOrder(o Order) []Trade {
 
 	switch o.OrderType {

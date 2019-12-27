@@ -72,12 +72,9 @@ func (e *exchangeImpl) NotifyExecution(T Trade) {
 func (e *exchangeImpl) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case SubmitOrderRequest:
-		fmt.Println(context.Sender())
 		success := e.SubmitOrder(msg.Stock, msg.OrderDetail)
 		if success {
-			fmt.Println("Order Received")
-		}
-		if success {
+			fmt.Printf("Order Received %+v", msg.OrderDetail)
 			context.Respond(OrderConfirmation{})
 		}
 	case GetQuoteMessage:
