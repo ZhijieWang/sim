@@ -35,6 +35,7 @@ func runIterations() {
 		panic("Process Exchange already initialized")
 	}
 	// Initialize MatketMaker and beging IPO
+
 	MMProps := actor.PropsFromProducer(func() actor.Actor {
 		return &MarketMakerTrader{}
 	})
@@ -50,7 +51,7 @@ func runIterations() {
 	}
 	// Spawn Traders and add them one by one to broadcast group
 	TraderProps := actor.PropsFromProducer(func() actor.Actor {
-		return NewPariticipant()
+		return NewParticipant()
 	})
 	pid := rootContext.Spawn(TraderProps)
 

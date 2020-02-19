@@ -26,6 +26,7 @@ type traderImpl struct {
 
 func (t *traderImpl) Run() {
 	t.Observe()
+	fmt.Printf("%+v", t.latestQuote)
 	t.Trade()
 }
 func getExchange() *actor.PID {
@@ -104,7 +105,7 @@ func (t *traderImpl) Receive(context actor.Context) {
 
 // NewParticipant instantiate a new trader
 // TODO: instantiate NewParticipant as a SPawnFunc with autonatically keyed names
-func NewPariticipant() Trader {
+func NewParticipant() Trader {
 	t := &traderImpl{
 		nil,
 		10000.00,

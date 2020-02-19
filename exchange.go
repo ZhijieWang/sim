@@ -28,18 +28,15 @@ func InitExchange() Exchange {
 		make(map[string]Market),
 		[]Trader{},
 	}
-	for i := 1; i <= 10; i++ {
+	for i := 1; i <= 1; i++ {
 		m := NewMarket()
 		e.Markets[m.GetSymbol()] = m
 	}
-	// for i := 1; i <= 5000000; i++ {
-	// 	e.Participants = append(e.Participants, NewPariticpant())
-	// }
 	return e
 }
 func (e *exchangeImpl) executeOrder(stock string, o Order) {
 	trades := e.Markets[stock].MatchOrder(o)
-	actor.EmptyRootContext.Send(actor.NewLocalPID("$2"), OrderFulfillment{
+	actor.EmptyRootContext.Send(&o.Origin, OrderFulfillment{
 		Timestamp: time.Now(),
 		Trades:    trades,
 		OrderID:   o.OrderID,
@@ -63,9 +60,10 @@ func (e *exchangeImpl) GetAllQuotes() map[string]Quote {
 
 }
 
-func (e *exchangeImpl) NotifyExecution(T Trade) {
-	context := actor.EmptyRootContext
-	trader := actor.NewLocalPID(T.Origin)
+func NotifyExecution(T Trade, trader *actor.PID) {
+
+	context := getRootContext()
+	// fmt.Printf("Notifying Execution %+v to Trader %s", T, trader.GetId())
 	context.Request(trader, T)
 }
 
