@@ -1,10 +1,19 @@
-package main
+package market
 
 import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"math/rand"
 	"time"
 )
+
+type Quote struct {
+	LastTradedPrice  float32
+	LastTradedVolume int
+	CurrentBid       float32
+	BidVolumer       int
+	CurrentAsk       float32
+	AskVolume        int
+}
 
 var seededRand *rand.Rand = rand.New(
 	rand.NewSource(time.Now().UnixNano()))
@@ -30,23 +39,23 @@ const (
 	MaxPriceRange = 10
 )
 
-type Entry struct {
-	Price    float32
-	Quantity int
-	Orders   []Order
-}
+//type Entry struct {
+//	Price    float32
+//	Quantity int
+//	Orders   []Order
+//}
 
-type orderBook struct {
-	Entries []Entry
-	askMin  int
-	bidMax  int
-}
+//type orderBook struct {
+//	Entries []Entry
+//	askMin  int
+//	bidMax  int
+//}
 
 // Market interface declares interface for the market implementation
 type Market interface {
-	PlaceOrder(Order) bool
+	//OrderHandler(Order) bool
 	GetSymbol() string
-	MatchOrder(Order) []Trade
+	//	MatchOrder(Order) []Trade
 	GetQuote() Quote
 	init(float32, int)
 }
@@ -61,13 +70,13 @@ type marketImpl struct {
 
 // NewMarket constructor
 func NewMarket() Market {
-	entryInitializer := func(size int, offset float32) []Entry {
-		e := make([]Entry, size)
-		for i := float32(0.0); int(i) < len(e); i++ {
-			e[int(i)].Price = offset + i*0.01
-		}
-		return e
-	}
+	//	entryInitializer := func(size int, offset float32) []Entry {
+	//		e := make([]Entry, size)
+	//		for i := float32(0.0); int(i) < len(e); i++ {
+	//			e[int(i)].Price = offset + i*0.01
+	//		}
+	//		return e
+	//	}
 	return &marketImpl{
 		Stock:  String(10),
 		Price:  1.0,
@@ -81,15 +90,15 @@ func NewMarket() Market {
 	}
 }
 
-func (m *marketImpl) PlaceOrder(order Order) bool {
-	switch order.OrderType {
-	case Bid:
-		m.MatchBidOrder(order)
-	case Ask:
-		m.MatchAskOrder(order)
-	}
-	return true
-}
+//func (m *marketImpl) OrderHandler(order Order) bool {
+//	switch order.OrderType {
+//	case Bid:
+//		m.MatchBidOrder(order)
+//	case Ask:
+//		m.MatchAskOrder(order)
+//	}
+//	return true
+//}
 func (m *marketImpl) GetQuote() Quote {
 	return Quote{
 		m.Price,
@@ -97,6 +106,10 @@ func (m *marketImpl) GetQuote() Quote {
 		m.Orders.Entries[m.Orders.askMin].Price,
 	}
 }
+
+//func (m *marketImpl) placeOrder(order Order) bool {
+//
+//}
 
 type TradeType int
 
@@ -113,28 +126,28 @@ type Trade struct {
 	TradeType    TradeType
 }
 
-func (o Order) Fill(q int, price float32) {
-	var t Trade
-	if o.Quantity >= q {
-		o.Quantity -= q
-		o.Filled += q
-		o.Status = Filled
-		t = Trade{
-			"stock",
-			+q,
-			price,
-			0,
-		}
-		switch o.OrderType {
-		case Bid:
-			t.TradeType = Bought
-		case Ask:
-			t.TradeType = Sold
-		}
-		NotifyExecution(t, &o.Origin)
-	}
-	// return t
-}
+//func (o Order) Fill(q int, price float32) {
+//	var t Trade
+//	if o.Quantity >= q {
+//		o.Quantity -= q
+//		o.Filled += q
+//		o.Status = Filled
+//		t = Trade{
+//			"stock",
+//			+q,
+//			price,
+//			0,
+//		}
+//		switch o.OrderType {
+//		case Bid:
+//			t.TradeType = Bought
+//		case Ask:
+//			t.TradeType = Sold
+//		}
+//		NotifyExecution(t, &o.Origin)
+//	}
+// return t
+//}
 
 // MatchBidOrder is responsible to take a bid and match to available Asks.
 // If there are available Asks, try to match the orders, up to the bid limit price limit and bid quantity.

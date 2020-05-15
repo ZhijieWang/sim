@@ -1,4 +1,4 @@
-module github.com/zhijiewang/marketplace
+module marketplace
 
 go 1.12
 

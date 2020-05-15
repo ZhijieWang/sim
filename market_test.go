@@ -1,11 +1,10 @@
 package main
 
 import (
+	"github.com/AsynkronIT/protoactor-go/actor"
 	"sync"
 	"testing"
 	"time"
-	"fmt"
-	"github.com/AsynkronIT/protoactor-go/actor"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -24,7 +23,6 @@ func (d *DummyTrader) Receive(context actor.Context) {
 		d.WG.Done()
 	}
 }
-
 
 var t1 = &DummyTrader{
 	&sync.WaitGroup{},
@@ -121,19 +119,17 @@ func TestMarketInitialization(t *testing.T) {
 	// msgs = msgs[0:]
 	m := NewMarket()
 	m.GetQuote()
-	// t1.WG.Add(1)
-	// t2.WG.Add(1)
-	// m.PlaceOrder(IPOOrder)
-	// m.PlaceOrder(Order{
-	// 	Timestamp: time.Now(),
-	// 	Quantity:  20,
-	// 	Price:     1.35,
-	// 	Filled:    0,
-	// 	Status:    Placed,
-	// 	Origin:    *b,
-	// 	OrderType: Bid,
-	// 	OrderID:   String(10),
-	// })
+	m.PlaceOrder(IPOOrder)
+	m.PlaceOrder(Order{
+		Timestamp: time.Now(),
+		Quantity:  20,
+		Price:     1.35,
+		Filled:    0,
+		Status:    Placed,
+		Origin:    *b,
+		OrderType: Bid,
+		OrderID:   String(10),
+	})
 	// t1.WG.Wait()
 	// t2.WG.Wait()
 	// assert.Equal(
