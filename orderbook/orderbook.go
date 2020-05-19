@@ -1,16 +1,8 @@
 package orderbook
 
 import (
-	"fmt"
-	"math/rand"
+	"math"
 )
-
-type Order interface {
-	GetType() OrderType
-	GetPrice() float64
-	GetVolume() int
-	Fill(int) Trade
-}
 
 type TradeStatus string
 type OrderType int
@@ -19,137 +11,6 @@ const (
 	BidOrder OrderType = iota
 	AskOrder
 )
-
-type Trade interface {
-	GetStatus() TradeStatus
-	GetFilledQuantity() int
-	GetFilledAvgPrice() float64
-	GetOrderId() int
-}
-
-type tradeImpl struct {
-	tradeId int
-	orderId int
-	filled  int
-	price   float64
-	status  TradeStatus
-}
-
-func (t tradeImpl) GetStatus() TradeStatus {
-	return t.status
-}
-
-func (t tradeImpl) GetFilledQuantity() int {
-	return t.filled
-}
-func (t tradeImpl) GetFilledAvgPrice() float64 {
-	return t.price
-}
-
-func (t tradeImpl) GetOrderId() int {
-	return t.orderId
-}
-func NewTrade(oId int, filled int, price float64) Trade {
-	return tradeImpl{
-		tradeId: rand.Int(),
-		orderId: oId,
-		filled:  filled,
-		price:   price,
-		status:  "Filled",
-	}
-
-}
-func NewOrder(o OrderType, price float64, v int) Order {
-	return &orderImpl{
-		ID:       rand.Int(),
-		BidOrAsk: o,
-		Price:    price,
-		Volume:   v,
-	}
-}
-
-type orderImpl struct {
-	ID       int
-	Ticker   string
-	BidOrAsk OrderType // true for ask, false for bid
-	Price    float64
-	Volume   int
-}
-
-func (o *orderImpl) GetPrice() float64 {
-	return o.Price
-}
-func (o *orderImpl) Fill(quantity int) Trade {
-	if quantity > o.Volume {
-		panic(fmt.Errorf("Filling more than what the order has. Want %d, Has %d", quantity, o.Volume))
-	}
-	o.Volume -= quantity
-	if o.Volume == 0 {
-		//o.Close()
-	}
-
-	return NewTrade(o.ID, quantity, o.Price)
-}
-func (o *orderImpl) GetVolume() int {
-	return o.Volume
-}
-func (o *orderImpl) GetType() OrderType {
-	return o.BidOrAsk
-}
-
-type entry struct {
-	orders []Order
-	volume int
-	price  float64
-}
-
-func NewEntry(price float64) *entry {
-	return &entry{
-		orders: []Order{},
-		volume: 0,
-		price:  price,
-	}
-}
-func (e *entry) Add(o Order) {
-	e.orders = append(e.orders, o)
-	e.volume += o.GetVolume()
-}
-func (e *entry) Peek() Order {
-	return e.orders[0]
-}
-func (e *entry) Pop() Order {
-	var x Order
-	x, e.orders = e.orders[len(e.orders)-1], e.orders[:len(e.orders)-1]
-	e.volume -= x.GetVolume()
-	return x
-}
-func (e *entry) GetVolume() int {
-	return e.volume
-}
-func (e *entry) GetPrice() float64 {
-	return e.price
-}
-
-func (e *entry) Fill(volume int) []Trade {
-	var fill int
-	var trades []Trade
-	for (volume != 0) && (0 < len(e.orders)) {
-		if volume > e.orders[0].GetVolume() {
-			fill = e.orders[0].GetVolume()
-		} else {
-			fill = volume
-		}
-		volume -= fill
-		e.volume -= fill
-		trades = append(trades, e.orders[0].Fill(fill))
-		if e.orders[0].GetVolume() == 0 {
-			e.orders = e.orders[1:]
-			// empty order is cleared at the Entry level Fill method
-		}
-
-	}
-	return trades
-}
 
 type OrderBook interface {
 	PlaceBid(Order) (bool, []Trade)
@@ -163,20 +24,18 @@ type orderBookImpl struct {
 	asks []*entry // sorted in ascending orders
 }
 
-func NewOrderBook(initPrice float64, volume int) OrderBook {
+func NewOrderBook() OrderBook {
 	o := &orderBookImpl{
 		bids: []*entry{},
 		asks: []*entry{},
 	}
-	o.asks = append(o.bids, NewEntry(1.0))
-	o.asks[0].Add(NewOrder(AskOrder, initPrice, volume))
 	return o
 }
 func (o *orderBookImpl) PlaceBid(order Order) (bool, []Trade) {
 	// A bid that is at or above currentAsk, should be matched
 	// Otherwise, insert into the list of entries
+
 	currentAsk, _ := o.GetCurrentAsk()
-	fmt.Println(currentAsk)
 	if order.GetPrice() >= currentAsk {
 		return true, o.Fill(order)
 	} else {
@@ -227,14 +86,21 @@ func (o *orderBookImpl) GetCurrentBid() (float64, int) {
 		return cur.GetPrice(), cur.GetVolume()
 	}
 }
+
+// GetCurrentAsk return the information on current/lowest ask available.
+// if no ask order in the system, return positive infinity for price and 0 for quantity
 func (o *orderBookImpl) GetCurrentAsk() (float64, int) {
+
 	if len(o.asks) == 0 {
-		return 0.0, 0
+		return math.Inf(1), 0
 	} else {
 		cur := o.asks[0]
 		return cur.GetPrice(), cur.GetVolume()
 	}
 }
+
+// GetCurrentBid return the information on current/highest bid availablke.
+// if no bid order in the system, return 0 for price and 0 for quantity
 func (o *orderBookImpl) GetNextBidOrder() Order {
 	if len(o.bids) != 0 {
 		return o.bids[0].Peek()
