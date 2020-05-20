@@ -1,8 +1,16 @@
-package orderbook
+package common
 
 import (
 	"fmt"
 	"math/rand"
+)
+
+type TradeStatus string
+type OrderType int
+
+const (
+	BidOrder OrderType = iota
+	AskOrder
 )
 
 type Order interface {

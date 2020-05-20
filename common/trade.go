@@ -1,4 +1,4 @@
-package orderbook
+package common
 
 import "math/rand"
 

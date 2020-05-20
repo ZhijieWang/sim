@@ -1,7 +1,10 @@
-package main
+package exchange
 
 import (
 	"fmt"
+	"marketplace/common"
+	"marketplace/market"
+	"marketplace/orderbook"
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
@@ -9,17 +12,17 @@ import (
 
 // exchangeImpl implements the interface of Exchange
 type exchangeImpl struct {
-	Markets      map[string]Market
-	Participants []Trader
+	Markets      map[string]market.Market
+	Participants []orderbook.Trade
 }
 
 // Exchange interface documents basic behavior of an exchange and protocol.
 // Multiple echange intstances can be syndicated
 type Exchange interface {
-	SubmitOrder(string, Order) bool
+	SubmitOrder(common.Order) bool
 	Receive(actor.Context)
-	GetQuote(string) Quote
-	GetAllQuotes() map[string]Quote
+	GetQuote(string) market.Quote
+	GetAllQuotes() map[string]market.Quote
 }
 
 // InitExchange is the constructor for default exchange creation

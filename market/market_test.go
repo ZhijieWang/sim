@@ -1,7 +1,7 @@
 package market
 
 import (
-	"marketplace/orderbook"
+	"marketplace/common"
 	"math"
 	"testing"
 
@@ -20,7 +20,7 @@ func TestMarketInitialization(t *testing.T) {
 func TestOrderExecution(t *testing.T) {
 
 	m := NewMarket()
-	trades := m.PlaceOrder(orderbook.NewOrder(orderbook.BidOrder, 1.0, 1000, ""))
+	trades := m.PlaceOrder(common.NewOrder(common.BidOrder, 1.0, 1000, ""))
 	assert.Equal(t, 2, len(trades))
 	assert.Equal(t, 1000, trades[0].GetFilledQuantity())
 	q := m.GetQuote()
