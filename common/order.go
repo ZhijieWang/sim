@@ -18,11 +18,13 @@ type Order interface {
 	GetPrice() float64
 	GetVolume() int
 	Fill(int) Trade
+	GetId() OrderId
+	GetSymbol() string
 }
 
 func NewOrder(o OrderType, price float64, v int, stock string) Order {
 	return &orderImpl{
-		id:       rand.Int(),
+		id:       OrderId(rand.Int()),
 		bidOrAsk: o,
 		price:    price,
 		volume:   v,
@@ -30,8 +32,9 @@ func NewOrder(o OrderType, price float64, v int, stock string) Order {
 	}
 }
 
+type OrderId int
 type orderImpl struct {
-	id       int
+	id       OrderId
 	ticker   string
 	bidOrAsk OrderType // true for ask, false for bid
 	price    float64
@@ -39,6 +42,12 @@ type orderImpl struct {
 	stock    string
 }
 
+func (o *orderImpl) GetSymbol() string {
+	return o.stock
+}
+func (o *orderImpl) GetId() OrderId {
+	return o.id
+}
 func (o *orderImpl) GetPrice() float64 {
 	return o.price
 }
@@ -48,7 +57,7 @@ func (o *orderImpl) Fill(quantity int) Trade {
 	}
 	o.volume -= quantity
 	// removal of filled order is at entry level
-	return NewTrade(o.id, quantity, o.price, o.stock)
+	return NewTrade(o, quantity, o.price)
 }
 func (o *orderImpl) GetVolume() int {
 	return o.volume

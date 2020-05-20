@@ -6,13 +6,13 @@ type Trade interface {
 	GetStatus() TradeStatus
 	GetFilledQuantity() int
 	GetFilledAvgPrice() float64
-	GetOrderId() int
+	GetOrderId() OrderId
 	GetStockSymbol() string
 }
 
 type tradeImpl struct {
 	tradeId int
-	orderId int
+	orderId OrderId
 	filled  int
 	price   float64
 	status  TradeStatus
@@ -30,20 +30,30 @@ func (t tradeImpl) GetFilledAvgPrice() float64 {
 	return t.price
 }
 
-func (t tradeImpl) GetOrderId() int {
+func (t tradeImpl) GetOrderId() OrderId {
 	return t.orderId
 }
 func (t tradeImpl) GetStockSymbol() string {
 	return t.stock
 }
-func NewTrade(oId int, filled int, price float64, stock string) Trade {
-	return tradeImpl{
-		tradeId: rand.Int(),
-		orderId: oId,
-		filled:  filled,
-		price:   price,
-		status:  "Filled",
-		stock:   stock,
+func NewTrade(o Order, filled int, price float64) Trade {
+	if o.GetType() == BidOrder {
+		return tradeImpl{
+			tradeId: rand.Int(),
+			orderId: o.GetId(),
+			filled:  filled,
+			price:   price,
+			status:  "Baught",
+			stock:   o.GetSymbol(),
+		}
+	} else {
+		return tradeImpl{
+			tradeId: rand.Int(),
+			orderId: o.GetId(),
+			filled:  filled,
+			price:   price,
+			status:  "Sold",
+			stock:   o.GetSymbol(),
+		}
 	}
-
 }
