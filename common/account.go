@@ -9,6 +9,7 @@ type Account interface {
 	Commit(stock string, quantity int, price float64, BidOrAsk OrderType) (Order, error)
 	Update(trade Trade)
 	Cancel(id OrderId)
+	GetId() AccountId
 }
 
 type AccountId int
@@ -31,22 +32,30 @@ func NewDefaultAccount(cash float64) Account {
 func (a *accountImpl) Cancel(id OrderId) {
 	panic(fmt.Errorf("Not yet Implemented"))
 }
+func (a *accountImpl) GetId() AccountId {
+	return a.id
+}
 func (a *accountImpl) Update(trade Trade) {
 	stock := trade.GetStockSymbol()
 	a.cash.Update(trade)
-	if val, ok := a.positions[stock]; !ok {
-		a.positions[stock] = NewStockPosition()
+	if _, ok := a.positions[stock]; !ok {
+		a.positions[stock] = NewStockPosition(stock)
 	}
 	a.positions[stock].Update(trade)
 }
 func (a *accountImpl) Commit(stock string, quantity int, price float64, BidOrAsk OrderType) (Order, error) {
+	var order Order
+	var err error
 	switch BidOrAsk {
 	case BidOrder:
-		a.cash.Commit(quantity, price, stock)
-
+		order, err = a.cash.Commit(quantity, price, stock)
 	case AskOrder:
-
-		return a.positions[stock].Commit(quantity, price, stock)
+		order, err = a.positions[stock].Commit(quantity, price, stock)
 	}
-	return nil, nil
+	if err != nil {
+		return nil, err
+	} else {
+		order.SetTraderId(a.id)
+		return nil, nil
+	}
 }

@@ -14,7 +14,7 @@ type stockPositionImpl struct {
 	committed int
 }
 
-func NewStockPosition(stock) {
+func NewStockPosition(stock string) Position {
 	return &stockPositionImpl{
 		stock:     stock,
 		cleared:   0,
@@ -40,7 +40,7 @@ func (p *stockPositionImpl) Update(t Trade) bool {
 	switch t.GetStatus() {
 	case "Baught":
 		p.cleared += t.GetFilledQuantity()
-		p.commited -= t.GetFilledQuantity()
+		p.committed -= t.GetFilledQuantity()
 		return true
 	case "Sold":
 		p.cleared -= t.GetFilledQuantity()

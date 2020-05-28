@@ -20,19 +20,24 @@ type Order interface {
 	Fill(int) Trade
 	GetId() OrderId
 	GetSymbol() string
+	SetTraderId(AccountId) bool
 }
 
 func NewOrder(o OrderType, price float64, v int, stock string) Order {
 	return &orderImpl{
-		id:       OrderId(rand.Int()),
+		id:       OrderId{0, rand.Int()},
 		bidOrAsk: o,
 		price:    price,
 		volume:   v,
 		stock:    stock,
+		tid:      0,
 	}
 }
 
-type OrderId int
+type OrderId struct {
+	AccountId AccountId
+	OrderId   int
+}
 type orderImpl struct {
 	id       OrderId
 	ticker   string
@@ -40,8 +45,19 @@ type orderImpl struct {
 	price    float64
 	volume   int
 	stock    string
+	tid      AccountId
 }
 
+func (o *orderImpl) GetTraderId() AccountId {
+	return o.tid
+}
+func (o *orderImpl) SetTraderId(id AccountId) bool {
+	if o.tid != 0 {
+		o.tid = id
+		return true
+	}
+	return false
+}
 func (o *orderImpl) GetSymbol() string {
 	return o.stock
 }
