@@ -10,6 +10,7 @@ type Exchange interface {
 	SubmitOrder(common.Order) bool
 	GetQuote(string) common.Quote
 	GetAllQuotes() map[string]common.Quote
+	NewAccount(float64) (common.AccountId, error)
 }
 
 // InitExchange is the constructor for default exchange creation
@@ -48,6 +49,9 @@ func (e *exchangeImpl) NewAccount(money float64) (common.AccountId, error) {
 	a := common.NewDefaultAccount(money)
 	e.accounts[a.GetId()] = a
 	return a.GetId(), nil
+}
+func (e *exchangeImpl) GetBalance(id common.AccountId) map[string]float64 {
+	return e.accounts[id]
 }
 
 func (e *exchangeImpl) SubmitOrder(order common.Order) bool {

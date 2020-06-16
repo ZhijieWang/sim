@@ -2,10 +2,18 @@ package common
 
 import "fmt"
 
+type Balance struct {
+	Available float64
+	Commited  float64
+	Total     float64
+}
 type Position interface {
 	Commit(quantity int, price float64, stock string) (Order, error)
 	Update(Trade) bool
 	GetAvailable() float64
+	GetSymbol() string
+	GetBalance() Balance
+	Copy() Position
 }
 
 type stockPositionImpl struct {
@@ -19,6 +27,21 @@ func NewStockPosition(stock string) Position {
 		stock:     stock,
 		cleared:   0,
 		committed: 0,
+	}
+}
+func (p *stockPositionImpl) Copy() Position {
+	retVal := *p
+	return &retVal
+}
+func (p *stockPositionImpl) GetSymbol() string {
+	return p.stock
+}
+
+func (p *stockPositionImpl) GetBalance() Balance {
+	return Balance{
+		float64(p.cleared - p.committed),
+		float64(p.committed),
+		float64(p.cleared),
 	}
 }
 func (p *stockPositionImpl) Commit(quantity int, price float64, stock string) (Order, error) {
@@ -63,6 +86,17 @@ func NewCashPosition(money float64) Position {
 	}
 
 }
+func (cash *cashPositionImpl) GetSymbol() string {
+	return "$"
+}
+func (cash *cashPositionImpl) GetBalance() Balance {
+	return Balance{
+		cash.cleared - cash.committed,
+		cash.committed,
+		cash.cleared,
+	}
+
+}
 func (cash *cashPositionImpl) Commit(quantity int, price float64, stock string) (Order, error) {
 	value := float64(quantity) * price
 	if value > cash.GetAvailable() {
@@ -75,7 +109,12 @@ func (cash *cashPositionImpl) Commit(quantity int, price float64, stock string) 
 func (cash *cashPositionImpl) GetAvailable() float64 {
 	return cash.cleared - cash.committed
 }
+func (cash *cashPositionImpl) Copy() Position {
+	retVal := *cash
+	p := &retVal
 
+	return p
+}
 func (cash *cashPositionImpl) Update(t Trade) bool {
 	value := float64(t.GetFilledQuantity()) * t.GetFilledAvgPrice()
 	switch t.GetStatus() {

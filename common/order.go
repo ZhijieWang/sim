@@ -3,6 +3,7 @@ package common
 import (
 	"fmt"
 	"math/rand"
+	"time"
 )
 
 type TradeStatus string
@@ -39,13 +40,14 @@ type OrderId struct {
 	OrderId   int
 }
 type orderImpl struct {
-	id       OrderId
-	ticker   string
-	bidOrAsk OrderType // true for ask, false for bid
-	price    float64
-	volume   int
-	stock    string
-	tid      AccountId
+	id        OrderId
+	Timestamp time.Time
+	ticker    string
+	bidOrAsk  OrderType // true for ask, false for bid
+	price     float64
+	volume    int
+	stock     string
+	tid       AccountId
 }
 
 func (o *orderImpl) GetTraderId() AccountId {
