@@ -50,8 +50,8 @@ func (e *exchangeImpl) NewAccount(money float64) (common.AccountId, error) {
 	e.accounts[a.GetId()] = a
 	return a.GetId(), nil
 }
-func (e *exchangeImpl) GetBalance(id common.AccountId) map[string]float64 {
-	return e.accounts[id]
+func (e *exchangeImpl) GetBalance(id common.AccountId) map[string]common.Balance {
+	return e.accounts[id].GetBalance()
 }
 
 func (e *exchangeImpl) SubmitOrder(order common.Order) bool {
