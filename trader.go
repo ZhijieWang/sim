@@ -15,9 +15,9 @@ type Trader interface {
 	Run()
 }
 type traderImpl struct {
-	exchange  exchange.Exchange
-	balance   common.Position
-	accountId common.AccountId
+	exchange exchange.Exchange
+	balance  map[string]common.Balance
+	account  common.Account
 }
 
 func (t *traderImpl) Trade() {
@@ -29,7 +29,7 @@ func (t *traderImpl) Trade() {
 		//do nothing
 	case 1:
 		k := getSomeKey(quotes)
-		order, err := t.account.Commit(k, int(t.account.GetBalance()["$"]/quotes[k].CurrentAsk), quotes[k].CurrentAsk, common.AskOrder)
+		order, err := t.account.Commit(k, int(t.account.GetBalance()["$"].Available/quotes[k].CurrentAsk), quotes[k].CurrentAsk, common.AskOrder)
 		if err != nil {
 			panic(err)
 		}
@@ -54,11 +54,14 @@ func getSomeKey(m map[string]common.Quote) string {
 // NewParticipant instantiate a new trader
 // TODO: instantiate NewParticipant as a SPawnFunc with autonatically keyed names
 func NewParticipant(e exchange.Exchange) Trader {
-	aid, err := e.NewAccount(1000000, 0)
+	aid, err := e.NewAccount(1000000.0)
+	if err != nil {
+		panic("Not yet Implemented")
+	}
 	t := &traderImpl{
 		e,
-		e.GetBalance(aID),
-		aid,
+		e.GetBalance(aid),
+		common.NewDefaultAccount(1000000.0),
 	}
 	return t
 }

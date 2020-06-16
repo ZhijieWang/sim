@@ -11,6 +11,7 @@ type Exchange interface {
 	GetQuote(string) common.Quote
 	GetAllQuotes() map[string]common.Quote
 	NewAccount(float64) (common.AccountId, error)
+	GetBalance(common.AccountId) map[string]common.Balance
 }
 
 // InitExchange is the constructor for default exchange creation
