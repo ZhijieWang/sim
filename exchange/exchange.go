@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"marketplace/common"
 	"marketplace/market"
+
+	"github.com/AsynkronIT/protoactor-go/actor"
 )
 
 type Exchange interface {
@@ -12,6 +14,21 @@ type Exchange interface {
 	GetAllQuotes() map[string]common.Quote
 	NewAccount(float64) (common.AccountId, error)
 	GetBalance(common.AccountId) map[string]common.Balance
+	GetTrades()
+}
+
+type ExchangeActor struct {
+	e Exchange
+}
+
+func (e *ExchangeActor) Receive(context actor.Context) {
+	panic("Not yet implemented")
+}
+
+func InitExchangeActor() *ExchangeActor {
+	return &ExchangeActor{
+		e: InitExchange(),
+	}
 }
 
 // InitExchange is the constructor for default exchange creation
@@ -25,6 +42,12 @@ func InitExchange() Exchange {
 		e.markets[m.GetSymbol()] = m
 	}
 	return e
+}
+
+func (e *exchangeImpl) GetTrades() {
+	//for _, m := range e.markets {
+	//	m.GetTrades()
+	//}
 }
 
 type exchangeImpl struct {

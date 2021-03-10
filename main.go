@@ -3,86 +3,90 @@ package main
 import (
 	"fmt"
 	"io"
-	"sync"
+//	"sync"
 
-	console "github.com/AsynkronIT/goconsole"
+//	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/router"
+	//"github.com/AsynkronIT/protoactor-go/router"
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
 	jaegerlog "github.com/uber/jaeger-client-go/log"
 	"github.com/uber/jaeger-lib/metrics"
+  "marketplace/exchange"
+  "marketplace/participant"
 )
 
 func main() {
-	runIterations()
+  e:= exchange.InitExchange()
+  participant.NewParticipant(e)
+//	runIterations()
 }
 func getRootContext() *actor.RootContext {
 	return actor.NewRootContext(nil)
 	// return actor.NewRootContext(nil).WithSpawnMiddleware(opentracing.TracingMiddleware())
 }
-func runIterations() {
+//func runIterations() {
 	//Setting up context with middleware support
-	jaegerCloser := initJaeger()
-	defer jaegerCloser.Close()
-	rootContext := getRootContext()
+//	jaegerCloser := initJaeger()
+//	defer jaegerCloser.Close()
+//	rootContext := getRootContext()
 	// Setting up Exchange
-	ExchangeProps := actor.PropsFromProducer(func() actor.Actor {
-		return InitExchange()
-	})
-	_, err := rootContext.SpawnNamed(ExchangeProps, "Exchange")
-	if err != nil {
-		panic("Process Exchange already initialized")
-	}
+//	ExchangeProps := actor.PropsFromProducer(func() actor.Actor {
+//		return exchange.InitExchangeActor()
+//	})
+//	_, err := rootContext.SpawnNamed(ExchangeProps, "Exchange")
+//	if err != nil {
+//		panic("Process Exchange already initialized")
+//	}
 	// Initialize MatketMaker and beging IPO
 
-	MMProps := actor.PropsFromProducer(func() actor.Actor {
-		return &MarketMakerTrader{}
-	})
-	_, err = rootContext.SpawnNamed(MMProps, "MarketMaker")
-	if err != nil {
-		panic("Process MarketMaker already initialized")
-	}
+//	MMProps := actor.PropsFromProducer(func() actor.Actor {
+//		return &MarketMakerTrader{}
+//	})
+//	_, err = rootContext.SpawnNamed(MMProps, "MarketMaker")
+//	if err != nil {
+//		panic("Process MarketMaker already initialized")
+//	}
 
 	//Setting broadcast group
-	grp := rootContext.Spawn(router.NewBroadcastGroup())
-	if err != nil {
-		panic(err)
-	}
+//	grp := rootContext.Spawn(router.NewBroadcastGroup())
+//	if err != nil {
+//		panic(err)
+//	}
 	// Spawn Traders and add them one by one to broadcast group
-	TraderProps := actor.PropsFromProducer(func() actor.Actor {
-		return NewParticipant()
-	})
-	pid := rootContext.Spawn(TraderProps)
+//	TraderProps := actor.PropsFromProducer(func() actor.Actor {
+//		return NewParticipant()
+//	})
+	//pid := rootContext.Spawn(TraderProps)
 
-	rootContext.Send(grp, &router.AddRoutee{PID: pid})
+//	rootContext.Send(grp, &router.AddRoutee{PID: pid})
 	// Setting up WaitGroup for syncrhonization.
 	// Initalize ticker for clock
-	count := sync.WaitGroup{}
-	ticker := actor.PropsFromFunc(func(context actor.Context) {
-		switch context.Message().(type) {
-		case TICK:
-			context.Request(grp, &router.BroadcastMessage{Message: TICK{}})
-		case DONE:
-			count.Done()
-		}
-	})
-	t := rootContext.Spawn(ticker)
+//	count := sync.WaitGroup{}
+//	ticker := actor.PropsFromFunc(func(context actor.Context) {
+	//	switch context.Message().(type) {
+	//	case TICK:
+	//		context.Request(grp, &router.BroadcastMessage{Message: TICK{}})
+	//	case DONE:
+	//		count.Done()
+	//	}
+	//})
+//	t := rootContext.Spawn(ticker)
 	// Begin Rounds. Wait for sync -- all traders repond, before begin next round
-	for rounds := 0; rounds < 5; rounds++ {
-		count.Add(1)
-		rootContext.Send(t, TICK{})
-		count.Wait()
-		fmt.Printf("Round %d done\n", rounds)
+//	for rounds := 0; rounds < 5; rounds++ {
+//		count.Add(1)
+//		rootContext.Send(t, TICK{})
+//		count.Wait()
+//		fmt.Printf("Round %d done\n", rounds)
 
-	}
+	//}
 
-	console.ReadLine()
+//	console.ReadLine()
 	// t.Observe()
 	// stock, order := t.Trade()
-	// e.SubmitOrder(stock, order)
+  // e.SubmitOrder(stock, order)
 
-}
+//}
 func initJaeger() io.Closer {
 	// Sample configuration for testing. Use constant sampling to sample every trace
 	// and enable LogSpan to log every span via configured Logger.

@@ -1,4 +1,4 @@
-package main
+package participant
 
 import (
 	"fmt"
@@ -11,8 +11,8 @@ import (
 // Actual behavior is defined in traderImpl struct
 type Trader interface {
 	Trade()
-	Observe()
-	Run()
+	GetBalance()
+	GetPosition()
 }
 type traderImpl struct {
 	exchange exchange.Exchange
@@ -43,6 +43,9 @@ func (t *traderImpl) Trade() {
 		// if hold position, find one to sell
 	}
 
+}
+func (t *traderImpl) GetBalance() float64 {
+	return t.account.GetBalance()['$']
 }
 func getSomeKey(m map[string]common.Quote) string {
 	for k := range m {
