@@ -2,38 +2,37 @@ package participant
 
 import (
 	"marketplace/common"
-	"marketplace/exchange"
-	"math/rand"
 )
 
 // Trader type defines the interface of a basic trader.
 // Actual behavior is defined in traderImpl struct
 type Trader interface {
-	Trade() common.Order
+	Trade(map[string]common.Quote) common.Order
 	GetBalance() map[string]common.Balance
 }
+type MarketMaker interface {
+	Trader
+	GetTicker() string
+	IPO() common.Order
+}
 type traderImpl struct {
-	exchange exchange.Exchange
-	balance  map[string]common.Balance
-	account  common.Account
+	account common.Account
 }
 
-func (t *traderImpl) Trade() common.Order {
-	r := rand.Intn(3)
-	quotes := t.exchange.GetAllQuotes()
+func (t *traderImpl) Trade(quotes map[string]common.Quote) common.Order {
+	//	r := rand.Intn(3)
+	r := 1
 	switch r {
 	case 0:
 		// return "", common.Order{}
 		//do nothing
 	case 1:
 		k := getSomeKey(quotes)
-		order, err := t.account.Commit(k, int(t.account.GetBalance()["$"].Available/quotes[k].CurrentAsk), quotes[k].CurrentAsk, common.AskOrder)
+		order, err := t.account.Commit(k, int(t.account.GetBalance()["$"].Available/quotes[k].CurrentAsk), quotes[k].CurrentAsk, common.BidOrder)
 		if err != nil {
 			panic(err)
 		}
-
 		return order
-
 	case 2:
 		// if hold position, find one to sell
 		return nil
@@ -52,15 +51,9 @@ func getSomeKey(m map[string]common.Quote) string {
 
 // NewParticipant instantiate a new trader
 // TODO: instantiate NewParticipant as a SpawnFunc with autonatically keyed names
-func NewParticipant(e exchange.Exchange) Trader {
-	aid, err := e.NewAccount(1000000.0)
-	if err != nil {
-		panic("Not yet Implemented")
-	}
+func NewParticipant(aid common.AccountId, balance float64) Trader {
 	t := &traderImpl{
-		e,
-		e.GetBalance(aid),
-		common.NewDefaultAccount(1000000.0),
+		common.NewDefaultAccount(balance),
 	}
 	return t
 }
@@ -73,7 +66,7 @@ type marketMakerImpl struct {
 	initialized  bool
 }
 
-func NewMarketMaker(e exchange.Exchange, tickr string) Trader {
+func NewMarketMaker(tickr string) MarketMaker {
 	m := &marketMakerImpl{
 		account:      common.NewMarketMakerAccount(tickr, 10000),
 		ticker:       tickr,
@@ -86,7 +79,7 @@ func NewMarketMaker(e exchange.Exchange, tickr string) Trader {
 func (m *marketMakerImpl) GetBalance() map[string]common.Balance {
 	return m.account.GetBalance()
 }
-func (m *marketMakerImpl) Trade() common.Order {
+func (m *marketMakerImpl) Trade(quotes map[string]common.Quote) common.Order {
 	if m.initialized {
 		return nil
 	} else {
@@ -97,4 +90,11 @@ func (m *marketMakerImpl) Trade() common.Order {
 		}
 		return order
 	}
+}
+
+func (m *marketMakerImpl) IPO() common.Order {
+	return m.Trade(nil)
+}
+func (m *marketMakerImpl) GetTicker() string {
+	return m.ticker
 }

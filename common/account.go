@@ -73,13 +73,20 @@ func (a *accountImpl) GetBalance() map[string]Balance {
 	return retVal
 }
 func (a *accountImpl) Commit(stock string, quantity int, price float64, BidOrAsk OrderType) (Order, error) {
-	fmt.Printf("Account is %+v\n", a.positions[stock])
 	var order Order
 	var err error
+	if stock == "" {
+		return nil, fmt.Errorf("Invalid Stock Symbol")
+	}
 	switch BidOrAsk {
 	case BidOrder:
 		order, err = a.cash.Commit(quantity, price, stock)
 	case AskOrder:
+		// support short and negative positions later
+		//	_, ok := a.positions[stock]
+		//	if !ok {
+		//		a.positions[stock] = NewStockPosition(stock)
+		//	}
 		order, err = a.positions[stock].Commit(quantity, price, stock)
 	}
 	if err != nil {

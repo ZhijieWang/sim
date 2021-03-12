@@ -1,7 +1,6 @@
 package main_test
 
 import (
-	"fmt"
 	"marketplace/exchange"
 	"marketplace/participant"
 	"testing"
@@ -11,9 +10,8 @@ import (
 
 func TestSimulationInitiator(t *testing.T) {
 	e := exchange.InitExchange()
-	p := participant.NewParticipant(e)
-	fmt.Printf("%+v\n", e)
-	p.Trade()
-	fmt.Printf("%+v\n", p.GetBalance())
-	assert.Nil(t, nil)
+	e.NewMarket(participant.NewMarketMaker("A"))
+	p := participant.NewParticipant(1, 10000)
+
+	assert.NotNil(t, p.Trade(e.GetAllQuotes()))
 }

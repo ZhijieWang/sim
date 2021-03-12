@@ -40,9 +40,9 @@ type marketImpl struct {
 	book       orderbook.OrderBook
 }
 
-func NewMarket() Market {
+func NewMarket(tickr string) Market {
 	m := &marketImpl{
-		stock:      String(10),
+		stock:      tickr,
 		shares:     1000,
 		lastPrice:  0,
 		lastVolume: 0,
@@ -55,7 +55,7 @@ func NewMarket() Market {
 // init function implements the IPO process of a stock.
 func (m *marketImpl) init(price float64, quantity int) {
 	m.book = orderbook.NewOrderBook()
-	m.book.PlaceAsk(common.NewOrder(common.BidOrder, price, quantity, m.stock))
+	//m.book.PlaceAsk(common.NewOrder(common.BidOrder, price, quantity, m.stock))
 }
 func (m *marketImpl) GetSymbol() string {
 	return m.stock

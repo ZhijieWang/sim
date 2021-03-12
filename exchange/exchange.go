@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"marketplace/common"
 	"marketplace/market"
+	"marketplace/participant"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
@@ -15,6 +16,7 @@ type Exchange interface {
 	NewAccount(float64) (common.AccountId, error)
 	GetBalance(common.AccountId) map[string]common.Balance
 	GetTrades()
+	NewMarket(participant.MarketMaker)
 }
 
 type ExchangeActor struct {
@@ -36,10 +38,6 @@ func InitExchange() Exchange {
 	e := &exchangeImpl{
 		make(map[string]market.Market),
 		make(map[common.AccountId]common.Account),
-	}
-	for i := 1; i <= 1; i++ {
-		m := market.NewMarket()
-		e.markets[m.GetSymbol()] = m
 	}
 	return e
 }
@@ -66,6 +64,7 @@ func (e *exchangeImpl) GetAllQuotes() map[string]common.Quote {
 	}
 	return retVal
 }
+
 func (e *exchangeImpl) NewAccount(money float64) (common.AccountId, error) {
 	if money <= 0 {
 		return 0, fmt.Errorf("Invalid Account Registration with %f money", money)
@@ -95,4 +94,8 @@ func (e *exchangeImpl) SubmitOrder(order common.Order) bool {
 		panic("Not Yet Implemented")
 		//return false
 	}
+}
+func (e *exchangeImpl) NewMarket(maker participant.MarketMaker) {
+	m := market.NewMarket(maker.GetTicker())
+	e.markets[maker.GetTicker()] = m
 }
