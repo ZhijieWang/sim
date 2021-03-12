@@ -22,6 +22,13 @@ type accountImpl struct {
 	cash      Position
 }
 
+func NewMarketMakerAccount(stock string, quantity int) Account {
+	return &accountImpl{
+		id:        AccountId(rand.Int()),
+		orders:    []Order{},
+		positions: map[string]Position{stock: NewStockPositionWithValue(stock, quantity)},
+	}
+}
 func NewDefaultAccount(cash float64) Account {
 
 	return &accountImpl{
@@ -31,6 +38,7 @@ func NewDefaultAccount(cash float64) Account {
 		cash:      NewCashPosition(cash),
 	}
 }
+
 func (a *accountImpl) Cancel(id OrderId) {
 	panic(fmt.Errorf("Not yet Implemented"))
 }
@@ -65,6 +73,7 @@ func (a *accountImpl) GetBalance() map[string]Balance {
 	return retVal
 }
 func (a *accountImpl) Commit(stock string, quantity int, price float64, BidOrAsk OrderType) (Order, error) {
+	fmt.Printf("Account is %+v\n", a.positions[stock])
 	var order Order
 	var err error
 	switch BidOrAsk {
@@ -77,6 +86,6 @@ func (a *accountImpl) Commit(stock string, quantity int, price float64, BidOrAsk
 		return nil, err
 	} else {
 		order.SetTraderId(a.id)
-		return nil, nil
+		return order, nil
 	}
 }

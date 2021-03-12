@@ -24,9 +24,13 @@ type stockPositionImpl struct {
 
 func NewStockPosition(stock string) Position {
 	return &stockPositionImpl{
-		stock:     stock,
-		cleared:   0,
-		committed: 0,
+		stock: stock,
+	}
+}
+func NewStockPositionWithValue(stock string, quantity int) Position {
+	return &stockPositionImpl{
+		stock:   stock,
+		cleared: quantity,
 	}
 }
 func (p *stockPositionImpl) Copy() Position {
