@@ -15,7 +15,7 @@ type Exchange interface {
 	GetAllQuotes() map[string]common.Quote
 	NewAccount(float64) (common.AccountId, error)
 	GetBalance(common.AccountId) map[string]common.Balance
-	GetTrades()
+	GetTrades() []common.Trade
 	NewMarket(participant.MarketMaker)
 }
 
@@ -38,19 +38,19 @@ func InitExchange() Exchange {
 	e := &exchangeImpl{
 		make(map[string]market.Market),
 		make(map[common.AccountId]common.Account),
+		[]common.Trade{},
 	}
 	return e
 }
 
-func (e *exchangeImpl) GetTrades() {
-	//for _, m := range e.markets {
-	//	m.GetTrades()
-	//}
+func (e *exchangeImpl) GetTrades() []common.Trade {
+	return e.trades
 }
 
 type exchangeImpl struct {
 	markets  map[string]market.Market
 	accounts map[common.AccountId]common.Account
+	trades   []common.Trade
 }
 
 func (e *exchangeImpl) GetQuote(stock string) common.Quote {
@@ -89,6 +89,7 @@ func (e *exchangeImpl) SubmitOrder(order common.Order) bool {
 			act := t.GetOrderId().AccountId
 			e.accounts[act].Update(t)
 		}
+		e.trades = append(e.trades, trades...)
 		return true
 	} else {
 		panic("Not Yet Implemented")
