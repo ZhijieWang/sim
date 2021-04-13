@@ -27,6 +27,7 @@ func NewMarketMakerAccount(stock string, quantity int) Account {
 		id:        AccountId(rand.Int()),
 		orders:    []Order{},
 		positions: map[string]Position{stock: NewStockPositionWithValue(stock, quantity)},
+		cash:      NewCashPosition(0),
 	}
 }
 func NewDefaultAccount(cash float64) Account {

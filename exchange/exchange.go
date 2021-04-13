@@ -14,6 +14,7 @@ type Exchange interface {
 	GetQuote(string) common.Quote
 	GetAllQuotes() map[string]common.Quote
 	NewAccount(float64) (common.AccountId, error)
+	RegisterAccount(common.Account) (common.AccountId, error)
 	GetBalance(common.AccountId) map[string]common.Balance
 	GetTrades() []common.Trade
 	NewMarket(participant.MarketMaker)
@@ -73,6 +74,10 @@ func (e *exchangeImpl) NewAccount(money float64) (common.AccountId, error) {
 	e.accounts[a.GetId()] = a
 	return a.GetId(), nil
 }
+func (e *exchangeImpl) RegisterAccount(acc common.Account) (common.AccountId, error) {
+	e.accounts[acc.GetId()] = acc
+	return acc.GetId(), nil
+}
 func (e *exchangeImpl) GetBalance(id common.AccountId) map[string]common.Balance {
 	return e.accounts[id].GetBalance()
 }
@@ -87,6 +92,8 @@ func (e *exchangeImpl) SubmitOrder(order common.Order) bool {
 
 		for _, t := range trades {
 			act := t.GetOrderId().AccountId
+			fmt.Printf("Account %+v\n", e.accounts[act])
+			fmt.Printf("Trades %+v \n", t)
 			e.accounts[act].Update(t)
 		}
 		e.trades = append(e.trades, trades...)
@@ -98,5 +105,7 @@ func (e *exchangeImpl) SubmitOrder(order common.Order) bool {
 }
 func (e *exchangeImpl) NewMarket(maker participant.MarketMaker) {
 	m := market.NewMarket(maker.GetTicker())
+	e.RegisterAccount(maker.GetAccountInfo())
 	e.markets[maker.GetTicker()] = m
+	e.SubmitOrder(maker.IPO())
 }

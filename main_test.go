@@ -1,6 +1,7 @@
 package main_test
 
 import (
+	"fmt"
 	"marketplace/common"
 	"marketplace/exchange"
 	"marketplace/participant"
@@ -36,6 +37,9 @@ func TestSimulationRun(t *testing.T) {
 	p := TestTrader{
 		common.NewDefaultAccount(100000),
 	}
+	fmt.Printf("Trader Name %+v \n", p.account.GetId())
+	assert.NotNil(t, p.account.GetBalance()["$"])
+	e.RegisterAccount(p.account)
 	o := p.Trade(e.GetAllQuotes())
 	e.SubmitOrder(o)
 	e.GetTrades()

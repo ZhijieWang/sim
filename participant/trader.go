@@ -9,6 +9,7 @@ import (
 type Trader interface {
 	Trade(map[string]common.Quote) common.Order
 	GetBalance() map[string]common.Balance
+	GetAccountInfo() common.Account
 }
 type MarketMaker interface {
 	Trader
@@ -39,6 +40,9 @@ func (t *traderImpl) Trade(quotes map[string]common.Quote) common.Order {
 	}
 	return nil
 }
+func (t *traderImpl) GetAccountInfo() common.Account {
+	return t.account
+}
 func (t *traderImpl) GetBalance() map[string]common.Balance {
 	return t.account.GetBalance()
 }
@@ -55,6 +59,7 @@ func NewParticipant(aid common.AccountId, balance float64) Trader {
 	t := &traderImpl{
 		common.NewDefaultAccount(balance),
 	}
+
 	return t
 }
 
@@ -76,6 +81,9 @@ func NewMarketMaker(tickr string) MarketMaker {
 	}
 	return m
 }
+func (m *marketMakerImpl) GetAccountInfo() common.Account {
+	return m.account
+}
 func (m *marketMakerImpl) GetBalance() map[string]common.Balance {
 	return m.account.GetBalance()
 }
@@ -88,6 +96,7 @@ func (m *marketMakerImpl) Trade(quotes map[string]common.Quote) common.Order {
 		if err != nil {
 			panic(err)
 		}
+		m.initialized = true
 		return order
 	}
 }
